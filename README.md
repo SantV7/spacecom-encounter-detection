@@ -3,52 +3,58 @@
 
 Sistema de detecção de encontros por geolocalização, desenvolvido em **TypeScript e Node.js** como parte do desafio técnico do **Programa Trainee Tech Spacecom 2027**.
 
-A solução tem como objetivo processar registros de posicionamento geográfico, identificar situações de proximidade entre indivíduos e classificar encontros conforme regras de negócio relacionadas a monitoramento, facções e medidas protetivas.
+A aplicação processa registros de posicionamento geográfico, identifica situações de proximidade entre indivíduos e classifica encontros de acordo com regras relacionadas a monitoramento, facções e medidas protetivas.
 
-O projeto prioriza **correção dos resultados, eficiência algorítmica, tipagem estática e separação de responsabilidades**.
+A solução prioriza **correção dos resultados, eficiência algorítmica, tipagem estática, separação de responsabilidades e validação reproduzível**.
 
 ## Tecnologias
 
-- TypeScript
-- Node.js
-- Haversine para cálculo de distâncias geográficas
-- Indexação espacial tridimensional
-- Processamento de dados em formato CSV/TXT
-- JSON para representação dos resultados
-- ESLint para análise estática de código
+- **TypeScript** — tipagem estática e definição dos contratos de dados.
+- **Node.js** — processamento dos arquivos e execução do algoritmo.
+- **Haversine** — cálculo de distâncias geográficas.
+- **Indexação espacial 3D** — redução de comparações desnecessárias.
+- **Streams e Readline** — leitura progressiva dos datasets.
+- **JSON** — representação dos encontros detectados.
+- **ESLint** — análise estática e padronização do código.
 
 ## Objetivo
 
-Identificar encontros físicos entre indivíduos monitorados utilizando registros com coordenadas geográficas, timestamps e informações sobre facções e medidas protetivas.
+Identificar encontros físicos entre indivíduos a partir de registros contendo coordenadas geográficas, timestamps, facções e medidas protetivas.
 
-A solução contempla três categorias:
+São consideradas três categorias:
 
 | Tipo | Descrição |
 | --- | --- |
 | `generico` | Proximidade entre monitorados sem vínculo específico |
-| `faccao` | Proximidade entre monitorados pertencentes à mesma facção |
+| `faccao` | Proximidade entre monitorados da mesma facção |
 | `protetiva` | Proximidade entre uma vítima e um agressor vinculado à sua medida protetiva |
 
 ## Regras de negócio
 
-A detecção considera os seguintes critérios:
+A detecção respeita os seguintes critérios:
 
-- Distância estritamente inferior a 20 metros.
-- Cálculo geográfico por Haversine, utilizando raio terrestre de 6.371.000 metros.
-- Comparação exclusiva entre posicionamentos com timestamps idênticos.
-- Classificação dos encontros conforme os vínculos entre os indivíduos.
-- Deduplicação de encontros por par de indivíduos e timestamp.
-- Saída estruturada conforme o contrato JSON exigido pelo desafio.
+- Distância estritamente inferior a **20 metros**.
+- Cálculo geográfico utilizando a fórmula de **Haversine**, com raio terrestre de **6.371.000 metros**.
+- Comparação exclusiva de posicionamentos com timestamps idênticos.
+- Classificação conforme os vínculos entre os indivíduos.
+- Deduplicação por par de indivíduos e timestamp, independentemente da ordem dos IDs.
+- Geração de arquivos JSON no formato exigido pelo desafio.
 
-## Arquitetura
-
-A aplicação utiliza uma estrutura modular, separando modelos de dados, interpretação de registros, operações geográficas e regras de detecção.
+## Estrutura do projeto
 
 ```text
 spacecom-encounter-detection/
 ├── backend/
 │   ├── datasets/
+│   │   ├── examples/
+│   │   │   ├── dataset1.txt
+│   │   │   └── dataset2.txt
+│   │   └── expected/
+│   │       ├── first_answers.json
+│   │       └── second_answers.json
 │   ├── outputs/
+│   │   ├── output1.json
+│   │   └── output2.json
 │   ├── src/
 │   │   ├── features/
 │   │   │   └── encounters/
@@ -59,7 +65,8 @@ spacecom-encounter-detection/
 │   │   ├── utils/
 │   │   │   └── parser.ts
 │   │   ├── app.ts
-│   │   └── geolocation.ts
+│   │   ├── geolocation.ts
+│   │   └── validate.ts
 │   ├── tests/
 │   ├── eslint.config.ts
 │   ├── package.json
@@ -68,71 +75,105 @@ spacecom-encounter-detection/
 └── README.md
 ```
 
+Os arquivos dos datasets de referência e os respectivos gabaritos são utilizados para validar a solução. A disponibilidade desses arquivos no repositório depende da configuração de versionamento.
+
 ### Responsabilidades dos módulos
 
 | Módulo | Responsabilidade |
 | --- | --- |
-| `types/position.ts` | Define o contrato dos registros de geolocalização |
-| `types/encounter.ts` | Define a estrutura dos encontros e seus tipos |
-| `utils/parser.ts` | Interpreta e valida registros dos datasets |
-| `geolocation.ts` | Implementa Haversine e verifica o limite de proximidade |
-| `features/encounters/detect.ts` | Identifica, classifica e deduplica encontros |
-| `app.ts` | Ponto de integração do processamento, em desenvolvimento |
+| `types/position.ts` | Define a estrutura de um registro de geolocalização |
+| `types/encounter.ts` | Define os tipos e o contrato JSON de um encontro |
+| `utils/parser.ts` | Interpreta e valida os registros dos datasets |
+| `geolocation.ts` | Calcula distâncias com Haversine |
+| `features/encounters/detect.ts` | Localiza candidatos, classifica e deduplica encontros |
+| `app.ts` | Integra leitura dos arquivos, processamento e geração de JSON |
+| `validate.ts` | Compara os resultados gerados com os gabaritos oficiais |
 
-## Estratégia de detecção
+## Estratégia de implementação
 
-O algoritmo foi estruturado para identificar encontros com precisão e evitar comparações geográficas desnecessárias.
+### 1. Leitura e validação dos registros
 
-### 1. Interpretação dos registros
+Os datasets utilizam campos separados por ponto e vírgula (`;`), contendo identificadores, facções, timestamps, coordenadas e informações sobre medidas protetivas.
 
-O parser converte os registros delimitados por ponto e vírgula em objetos TypeScript tipados.
+O parser realiza a conversão para objetos TypeScript, validando:
 
-Entre as validações implementadas estão:
+- Quantidade de campos esperada.
+- Identificadores e facções.
+- Latitude e longitude.
+- Formato do timestamp.
+- Valores booleanos.
+- Listas de identificadores vinculados a medidas protetivas.
 
-- Quantidade esperada de campos.
-- Coordenadas geográficas válidas.
-- Identificadores numéricos.
-- Formato dos timestamps.
-- Valores booleanos de medida protetiva.
-- Listas de IDs de restrição.
+### 2. Processamento por timestamp
 
-### 2. Cálculo geográfico
+A aplicação utiliza streams e a API `readline` do Node.js para percorrer os registros sem carregar o arquivo inteiro na memória.
 
-O cálculo de distância utiliza a fórmula de Haversine, com raio terrestre de 6.371.000 metros.
+As posições são agrupadas conforme o timestamp. Cada grupo é enviado separadamente ao detector.
 
-Um encontro somente é considerado quando a distância calculada é **menor que 20 metros**.
+A implementação atual pressupõe registros em ordem cronológica. Caso identifique um timestamp anterior ao grupo já processado, a aplicação interrompe a execução para evitar resultados incompletos.
 
-### 3. Indexação espacial
+### 3. Cálculo de distância
 
-Para reduzir comparações desnecessárias, o detector utiliza coordenadas cartesianas tridimensionais e organiza as posições em células espaciais de 20 metros.
+O módulo geográfico utiliza a fórmula de Haversine:
 
-Ao processar uma posição, o algoritmo consulta a célula atual e as células vizinhas para localizar possíveis encontros.
+```text
+a = sin²(Δφ/2) + cos(φ1) × cos(φ2) × sin²(Δλ/2)
 
-Os candidatos encontrados passam pela verificação de distância com Haversine.
+d = 2 × R × asin(√a)
+```
 
-Essa estratégia busca melhorar a eficiência em cenários com grande volume de registros geograficamente distribuídos.
+Onde:
 
-### 4. Classificação dos encontros
+- `φ` representa a latitude em radianos.
+- `λ` representa a longitude em radianos.
+- `R` corresponde ao raio terrestre de 6.371.000 metros.
+- `d` representa a distância entre as posições, em metros.
 
-Após identificar a proximidade, o detector avalia as características dos envolvidos.
+Somente distâncias **menores que 20 metros** são consideradas encontros válidos.
 
-A classificação implementada prioriza:
+### 4. Indexação espacial tridimensional
 
-1. Encontros relacionados a medidas protetivas.
-2. Encontros entre integrantes da mesma facção.
-3. Encontros genéricos entre monitorados.
+Para evitar comparações entre todos os indivíduos de cada timestamp, o algoritmo utiliza uma estrutura de indexação espacial.
 
-A classificação ainda será confrontada com os gabaritos oficiais para confirmar sua aderência aos resultados esperados.
+As coordenadas geográficas são convertidas para coordenadas cartesianas tridimensionais e distribuídas em células de 20 metros.
 
-### 5. Deduplicação
+Ao analisar um registro, o detector consulta a célula correspondente e suas 26 células vizinhas.
 
-O algoritmo utiliza identificadores ordenados para reconhecer pares independentemente da ordem dos indivíduos.
+Essa abordagem reduz o número de pares candidatos em cenários com posições geograficamente dispersas.
 
-Dessa forma, evita registrar mais de uma vez o mesmo par no mesmo timestamp.
+A distância definitiva entre candidatos é sempre calculada por Haversine.
+
+### 5. Classificação de encontros
+
+O algoritmo aplica as regras de negócio para identificar:
+
+1. **Encontro de medida protetiva:** proximidade entre vítima e agressor presente na lista de restrições.
+2. **Encontro de facção:** proximidade entre monitorados com a mesma facção identificada.
+3. **Encontro genérico:** proximidade entre dois monitorados sem vínculo específico.
+
+Cada par recebe apenas uma classificação por timestamp, evitando registros redundantes.
+
+### 6. Deduplicação
+
+Os pares de indivíduos são identificados por seus IDs ordenados e pelo timestamp.
+
+Dessa forma, encontros entre os IDs `4` e `6` são tratados como o mesmo par, independentemente da ordem em que os registros foram lidos.
+
+### 7. Geração dos resultados
+
+O processamento gera um arquivo JSON contendo os encontros identificados.
+
+Cada objeto inclui:
+
+- Tipo do encontro.
+- IDs dos envolvidos.
+- Timestamp.
+- Coordenadas dos participantes.
+- Distância calculada em metros.
 
 ## Formato de saída
 
-O contrato de saída segue a estrutura exigida pela Spacecom:
+Exemplo de encontro:
 
 ```json
 [
@@ -155,29 +196,16 @@ O contrato de saída segue a estrutura exigida pela Spacecom:
 ]
 ```
 
-## Qualidade e validação
-
-O projeto está configurado com TypeScript em modo estrito e ESLint.
-
-A validação planejada inclui:
-
-- Testes unitários para o cálculo de Haversine.
-- Testes das regras de classificação.
-- Verificação de timestamps idênticos.
-- Verificação de encontros duplicados.
-- Comparação dos resultados com os dois JSONs oficiais de referência.
-- Medição do desempenho nos datasets disponibilizados.
-
-A ausência de erros de compilação não substitui a validação funcional. Os resultados serão documentados após a execução dos testes.
-
 ## Como executar
 
 ### Pré-requisitos
 
-- Node.js compatível com a versão do TypeScript utilizada.
-- npm.
+- Node.js
+- npm
 
 ### Instalação
+
+Na raiz do projeto:
 
 ```bash
 cd backend
@@ -190,37 +218,128 @@ npm install
 npx tsc --noEmit
 ```
 
-A execução completa dos datasets será documentada após a integração do detector com a leitura dos arquivos e a geração dos JSONs.
+### Processamento do dataset 1
+
+```bash
+npm run dev -- datasets/examples/dataset1.txt outputs/output1.json
+```
+
+### Processamento do dataset 2
+
+```bash
+npm run dev -- datasets/examples/dataset2.txt outputs/output2.json
+```
+
+Também é possível processar outros arquivos informando o caminho de entrada e o caminho desejado para o JSON de saída:
+
+```bash
+npm run dev -- datasets/dataset3.txt outputs/output3.json
+```
+
+### Validação automatizada
+
+Após gerar os resultados dos datasets 1 e 2:
+
+```bash
+npm run validate
+```
+
+O comando executa o módulo `src/validate.ts`, que compara os encontros gerados com os gabaritos de referência.
+
+A verificação considera:
+
+- Tipo de encontro.
+- Identificadores dos envolvidos, independentemente da ordem.
+- Timestamp.
+- Latitude e longitude de cada indivíduo.
+- Distância geográfica, com tolerância numérica de `1e-6`.
+- Encontros ausentes, inesperados e duplicados.
+
+A validação encerra com código de erro caso encontre divergências.
+
+## Resultados obtidos
+
+Os dois datasets de referência disponibilizados pela Spacecom foram processados e validados.
+
+### Processamento
+
+| Métrica | Dataset 1 | Dataset 2 |
+| --- | ---: | ---: |
+| Registros processados | 5.000 | 25.000 |
+| Encontros detectados | 4 | 6 |
+| Tempo observado | 0,066 s | 0,276 s |
+| Arquivo gerado | `output1.json` | `output2.json` |
+
+Os tempos representam execuções locais observadas durante o desenvolvimento. Não constituem benchmarks estatísticos ou garantias de desempenho em outros ambientes.
+
+### Comparação com os gabaritos oficiais
+
+| Métrica | Dataset 1 | Dataset 2 |
+| --- | ---: | ---: |
+| Encontros esperados | 4 | 6 |
+| Encontros corretos | 4 | 6 |
+| Encontros ausentes | 0 | 0 |
+| Encontros incorretos | 0 | 0 |
+| Resultado | PASSOU | PASSOU |
+
+**Resultado:** os 10 encontros dos dois datasets de referência corresponderam aos gabaritos oficiais na validação automatizada.
+
+A validação desses dois datasets demonstra a correção da solução nos casos de referência disponibilizados, mas não garante a ausência de diferenças nos demais datasets.
+
+## Qualidade de código
+
+O projeto utiliza:
+
+- Tipagem estática com TypeScript.
+- Contratos separados para entradas e saídas.
+- Organização modular por responsabilidade.
+- Tratamento de erros na leitura e validação dos registros.
+- Verificação estática de tipos.
+- Validação automatizada contra resultados conhecidos.
+- Commits organizados por funcionalidade e correção.
+
+Os testes unitários específicos para cálculos geográficos, limites de distância e casos extremos ainda estão previstos para a etapa de finalização.
+
+## Decisões técnicas
+
+A solução foi construída considerando três objetivos principais.
+
+### Correção
+
+Aplicação explícita das regras de distância, timestamp, classificação e unicidade, com validação por meio dos gabaritos oficiais.
+
+### Eficiência
+
+Uso de indexação espacial para reduzir comparações entre posições distantes e leitura progressiva para limitar o consumo de memória durante a interpretação dos datasets.
+
+Na implementação atual, os encontros detectados são acumulados antes da escrita do JSON final. A escrita progressiva será avaliada para datasets maiores.
+
+### Manutenibilidade
+
+Separação dos módulos de parsing, geolocalização, detecção, execução e validação, permitindo modificar e testar cada responsabilidade de forma independente.
 
 ## Status do desenvolvimento
 
 | Componente | Status |
 | --- | --- |
-| Configuração TypeScript e ESLint | Configurado |
-| Tipagem dos registros e encontros | Implementado |
-| Parser dos datasets | Implementado |
-| Fórmula de Haversine | Implementado |
-| Detecção e classificação | Implementação inicial |
-| Indexação espacial | Implementação inicial |
-| Processamento completo dos arquivos | Pendente |
-| Geração dos JSONs finais | Pendente |
-| Testes automatizados | Pendente |
-| Validação com gabaritos oficiais | Pendente |
-
-## Decisões técnicas
-
-A arquitetura foi definida considerando três prioridades:
-
-**Correção:** aplicar explicitamente as regras de proximidade, timestamps e vínculos entre indivíduos.
-
-**Eficiência:** utilizar indexação espacial para reduzir o número de comparações e reservar o cálculo de Haversine aos candidatos próximos.
-
-**Manutenibilidade:** manter responsabilidades separadas e contratos tipados, facilitando testes, depuração e evolução.
-
-A proposta evita dependências e camadas arquiteturais desnecessárias para um problema essencialmente algorítmico.
+| Configuração TypeScript e ESLint | Concluído |
+| Tipagem dos registros e encontros | Concluído |
+| Parser e validação dos registros | Concluído |
+| Fórmula de Haversine | Concluído |
+| Detecção e classificação | Implementado e validado nos exemplos |
+| Indexação espacial | Implementado |
+| Leitura progressiva dos datasets | Implementado |
+| Geração de arquivos JSON | Implementado |
+| Validação automatizada dos gabaritos | Concluído |
+| Dataset 1 | Validado |
+| Dataset 2 | Validado |
+| Datasets 3 a 7 | Pendente |
+| Testes unitários adicionais | Pendente |
+| Otimização da escrita dos resultados | Pendente |
+| Preparação da entrega final | Pendente |
 
 ## Contexto
 
-Desenvolvido para o processo seletivo do **Programa Trainee Tech Spacecom 2027**, com foco em resolução de problemas, qualidade de software e eficiência computacional.
+Projeto desenvolvido para o processo seletivo do **Programa Trainee Tech Spacecom 2027**, com foco em resolução de problemas, boas práticas de Engenharia de Software, validação de resultados e eficiência algorítmica.
 
-Os dados utilizados no desafio são fictícios.
+Os dados disponibilizados para o desafio são fictícios.
