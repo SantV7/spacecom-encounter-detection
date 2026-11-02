@@ -1,9 +1,22 @@
-export interface Position {
-  id: number;
-  factionId: number | null;
+
+export type EncounterType =
+  | "generico"
+  | "faccao"
+  | "protetiva";
+
+export interface Encounter {
+  tipo: EncounterType;
+
+  monitoradosEncontro: [number, number];
+
   timestamp: string;
-  lat: number;
-  lon: number;
-  protectiveMeasure: boolean;
-  restrictionIds: number[];
-}
+
+  posicoes: Record<
+    string,
+    {
+      lat: number;
+      lon: number;
+    }>;
+
+  distanciaMetros: number;
+};
