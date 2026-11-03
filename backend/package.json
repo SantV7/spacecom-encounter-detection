@@ -1,20 +1,26 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Sistema de detecção de encontros por geolocalização - Spacecom Trainee Tech 2027",
+  "main": "dist/app.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/app.ts",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:typecheck": "tsc -p tsconfig.test.json --noEmit",
+    "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "start": "node dist/app.ts",
-    "tcheck": "tsc --noEmit",
+    "start": "node dist/app.js",
     "validate": "tsx src/validate.ts"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "spacecom",
+    "geolocation",
+    "haversine",
+    "typescript",
+    "encounter-detection"
+  ],
   "license": "ISC",
-  "type": "module",
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.5",
