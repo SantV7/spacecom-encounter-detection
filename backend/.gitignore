@@ -1,3 +1,15 @@
-myTxt.md
+# Dependencies
+node_modules/
+dist/
+
+# Environment
 .env
-node_modules
+.env.*
+!.env.example
+
+# Large datasets
+datasets/examples/dataset[3-7].txt
+
+# Temporary files
+*.download
+*.log
