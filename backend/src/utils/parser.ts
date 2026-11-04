@@ -5,6 +5,42 @@ function removeQuotes(value: string): string {
   return value.trim().replace(/^"|"$/g, "");
 }
 
+function isValidTimestamp(value: string): boolean {
+  const parts =
+    /^(\d{4})-(\d{2})-(\d{2}) ([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/.exec(value);
+
+  if (!parts) {
+    return false;
+  }
+
+  const year = Number(parts[1]);
+  const month = Number(parts[2]);
+  const day = Number(parts[3]);
+
+  if (year < 1 || month < 1 || month > 12) {
+    return false;
+  }
+
+  const isLeapYear =
+    year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    isLeapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+
+  return day >= 1 && day <= (daysInMonth[month - 1] ?? 0);
+}
+
 export function parseLine(line: string): Position {
   const fields = line.split(";");
 
@@ -49,7 +85,7 @@ export function parseLine(line: string): Position {
     throw new Error(`Medida protetiva inválida: ${line}`);
   }
 
-  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(timestamp)) {
+  if (!isValidTimestamp(timestamp)) {
     throw new Error(`Timestamp inválido: ${timestamp}`);
   }
 
@@ -59,11 +95,16 @@ export function parseLine(line: string): Position {
     throw new Error(`Facção inválida: ${line}`);
   }
 
-  const restrictionIds = restrictions === ""
-    ? []
-    : restrictions.split(",").map((value) => Number(value.trim()));
+  const restrictionValues =
+    restrictions === ""
+      ? []
+      : restrictions.split(",").map((value) => value.trim());
+  const restrictionIds = restrictionValues.map(Number);
 
-  if (restrictionIds.some((value) => !Number.isSafeInteger(value))) {
+  if (
+    restrictionValues.some((value) => value === "") ||
+    restrictionIds.some((value) => !Number.isSafeInteger(value))
+  ) {
     throw new Error(`Lista de restrições inválida: ${line}`);
   }
 

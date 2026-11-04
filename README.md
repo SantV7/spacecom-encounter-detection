@@ -1,190 +1,282 @@
-Spacecom | Encounter Detection System
-Sistema de detecção de encontros por geolocalização, desenvolvido em TypeScript e Node.js para o desafio técnico do Programa Trainee Tech Spacecom 2027.
+# Spacecom — Detecção de Encontros
 
-A aplicação processa históricos de posicionamento, identifica pares de pessoas em proximidade física e classifica os encontros conforme regras de monitoramento eletrônico, facções e medidas protetivas. O projeto privilegia correção, desempenho, rastreabilidade e simplicidade de execução, sem depender de serviços externos de geolocalização.
+Aplicação de linha de comando em TypeScript e Node.js para detectar encontros entre pessoas monitoradas a partir de arquivos de posicionamento separados por ponto e vírgula. O projeto atende ao desafio técnico do Programa Trainee Tech Spacecom 2027.
 
-1. Objetivo e regras de negócio
-A partir de registros geográficos, identificar encontros entre dois indivíduos que estejam a uma distância estritamente menor que 20 metros e possuam o mesmo timestamp.
-Tipo	Regra de classificação
-generico	Proximidade entre dois monitorados sem vínculo de facção em comum
-faccao	Proximidade entre dois monitorados com o mesmo identificador de facção preenchido
-protetiva	Proximidade entre uma vítima com medida protetiva e um agressor presente na lista de restrições dessa vítima
+## Regras do desafio
 
+Um encontro ocorre quando duas posições têm o mesmo timestamp e a distância calculada pela fórmula de Haversine é **estritamente menor que 20 metros**, usando raio terrestre de **6.371.000 metros**. A ordem dos IDs no resultado não altera a identidade do par; cada par é registrado uma vez por timestamp.
 
-A implementação não considera a proximidade de uma vítima com uma pessoa fora de sua lista de restrições como violação de medida protetiva. Também não gera encontros entre duas vítimas. Para um mesmo par de IDs e timestamp, somente um encontro é registrado, independentemente da ordem em que os registros aparecem.
+| Tipo | Regra |
+| --- | --- |
+| `generico` | Proximidade entre dois monitorados elegíveis sem facção em comum. |
+| `faccao` | Proximidade entre dois monitorados com o mesmo identificador de facção não vazio. |
+| `protetiva` | Proximidade entre uma vítima com medida protetiva e um agressor listado nas restrições dessa vítima. |
 
-As regras geométricas são:
-- Comparação exclusivamente entre timestamps idênticos.
-- Distância calculada pela fórmula de Haversine, com raio terrestre de 6.371.000 metros.
-- Aceitação apenas quando distanciaMetros < 20 (20 metros exatos não são aceitos).
-- Identificação, classificação e deduplicação de cada encontro válido.
+A aplicação não registra encontros entre duas vítimas nem classifica como violação a proximidade entre uma vítima e uma pessoa que não esteja na lista de restrições correspondente.
 
-2. Tecnologias e ferramentas
-- Node.js: execução do programa, leitura de arquivos e geração de JSON.
-- TypeScript: tipagem estática dos registros, encontros e módulos.
-- TSX: execução direta de TypeScript durante o desenvolvimento e nos testes.
-- Node.js Test Runner (node:test): testes unitários sem framework adicional.
-- ESLint: análise estática do código.
-- Git e GitHub: controle de versão e publicação da solução.
-Não foi utilizado framework HTTP porque o problema exige processamento de arquivos, e não uma API web. A aplicação funciona pela linha de comando.
+## Tecnologias
 
-3. Arquitetura
+- Node.js 22 ou superior e npm.
+- TypeScript com módulos ES e compilação pelo `tsc`.
+- `tsx` para executar o TypeScript em desenvolvimento.
+- `node:test` e `node:assert/strict` para os testes, sem framework adicional.
+- APIs nativas do Node.js para leitura progressiva de arquivos e gravação de JSON.
+
+## Estrutura do repositório
+
+```text
 spacecom-encounter-detection/
-├── backend/
-│   ├── datasets/
-│   │   ├── examples/
-│   │   │   ├── dataset1.txt
-│   │   │   ├── dataset2.txt
-│   │   │   └── dataset3.txt ... dataset7.txt (download local)
-│   │   └── expected/
-│   │       ├── first_answers.json
-│   │       └── second_answers.json
-│   ├── outputs/
-│   │   ├── output1.json
-│   │   ├── output2.json
-│   │   └── output3.json ... output7.json
-│   ├── src/
-│   │   ├── features/
-│   │   │   └── encounters/
-│   │   │       └── detect.ts
-│   │   ├── types/
-│   │   │   ├── encounter.ts
-│   │   │   └── position.ts
-│   │   ├── utils/
-│   │   │   └── parser.ts
-│   │   ├── app.ts
-│   │   ├── geolocation.ts
-│   │   └── validate.ts
-│   ├── tests/
-│   │   ├── encounter.test.ts
-│   │   └── geolocation.test.ts
-│   ├── .gitignore
-│   ├── eslint.config.ts
-│   ├── package.json
-│   ├── package-lock.json
-│   ├── tsconfig.json
-│   └── tsconfig.test.json
-└── README.md
-Responsabilidades: parser.ts interpreta e valida os registros; geolocation.ts calcula distâncias com Haversine; detect.ts seleciona pares candidatos, classifica os encontros e remove duplicidades; app.ts coordena leitura e escrita; validate.ts compara os outputs 1 e 2 com os gabaritos públicos. Os arquivos em types/ definem os contratos TypeScript.
+├── README.md
+├── verifyContextChallengeTrainee.md
+└── backend/
+    ├── datasets/
+    │   ├── examples/
+    │   │   ├── dataset1.txt
+    │   │   ├── dataset2.txt
+    │   │   └── dataset3.txt ... dataset7.txt (download local; ignorados pelo Git)
+    │   └── expected/
+    │       ├── first_answers.json
+    │       └── second_answers.json
+    ├── outputs/
+    │   ├── output1.json ... output7.json
+    ├── src/
+    │   ├── features/encounters/detect.ts
+    │   ├── types/encounter.ts
+    │   ├── types/position.ts
+    │   ├── utils/parser.ts
+    │   ├── app.ts
+    │   ├── geolocation.ts
+    │   └── validate.ts
+    ├── tests/
+    │   ├── encounter.test.ts
+    │   ├── geolocation.test.ts
+    │   └── parser.test.ts
+    ├── .gitignore
+    ├── eslint.config.ts
+    ├── package.json
+    ├── package-lock.json
+    ├── tsconfig.json
+    └── tsconfig.test.json
+```
 
-Os datasets 3 a 7 são muito grandes e foram excluídos do versionamento. Os arquivos correspondentes podem ser baixados pelos links oficiais apresentados na seção 10. Os sete arquivos de saída permanecem disponíveis em backend/outputs/.
+`node_modules/` e `dist/` são diretórios locais gerados por instalação e build e estão excluídos pelo `.gitignore`. Os datasets 3 a 7 também são excluídos pelo tamanho; seus outputs JSON permanecem versionados no repositório.
 
-4. Dados de entrada
-Arquivos .txt em formato semelhante a CSV, com delimitador ; e cabeçalho:
+## Responsabilidades dos módulos
+
+| Módulo | Responsabilidade |
+| --- | --- |
+| `src/app.ts` | Lê o arquivo por stream, agrupa registros consecutivos pelo timestamp, chama o detector e grava o JSON de saída. |
+| `src/utils/parser.ts` | Interpreta e valida cada registro, incluindo campos, coordenadas, booleano, restrições e data/hora. |
+| `src/geolocation.ts` | Calcula a distância de Haversine e expõe a regra geográfica de proximidade. |
+| `src/features/encounters/detect.ts` | Converte posições para coordenadas cartesianas, busca candidatos na grade espacial, classifica e deduplica encontros. |
+| `src/types/position.ts` | Define o tipo de posição parseada. |
+| `src/types/encounter.ts` | Define os tipos aceitos e o contrato dos encontros de saída. |
+| `src/validate.ts` | Compara os outputs 1 e 2 com os gabaritos locais, incluindo posições e distância. |
+| `tests/` | Verifica cálculo geográfico, detecção, classificação, formato e validação do parser. |
+
+## Formato dos dados
+
+O input é um arquivo de texto UTF-8, com cabeçalho e sete campos separados por ponto e vírgula:
+
+```text
 idMonitorado;faccaoMonitorado;timestamp;latitude;longitude;medidaProtetiva;idsRestricaoMedida
-Campo	Significado
-idMonitorado	Identificador numérico do indivíduo
-faccaoMonitorado	ID da facção, quando houver
-timestamp	Horário da leitura, no formato YYYY-MM-DD HH:MM:SS
-latitude, longitude	Coordenadas geográficas em graus
-medidaProtetiva	Indicador booleano de pessoa protegida
-idsRestricaoMedida	IDs dos agressores vinculados à medida, separados por vírgula
+40;2;"2024-01-01 00:01:50";-10.07996;-37.08384;false;
+41;;"2024-01-01 00:01:50";-10.07987;-37.08389;true;"40"
+```
 
+IDs e coordenadas são numéricos; latitude deve estar entre -90 e 90 e longitude entre -180 e 180. Facção pode estar vazia. `medidaProtetiva` aceita `true` ou `false`; o último campo pode estar vazio ou conter IDs separados por vírgula. Timestamps devem seguir `YYYY-MM-DD HH:MM:SS` e representar uma data e hora válidas.
 
-O parser valida a quantidade de campos, coordenadas, valores numéricos, formato de timestamp e indicador de medida protetiva. Os registros são transformados em objetos tipados antes de entrar no detector.
+Cada output é um array JSON. Um item segue esta estrutura:
 
-5. Algoritmo e decisões de desempenho
-5.1. Leitura por grupos temporais
-O app.ts utiliza leitura de arquivo com stream e readline. Em vez de carregar todo o arquivo em memória, mantém apenas as posições do timestamp em processamento. Quando o timestamp muda, processa o grupo anterior e inicia o próximo.
-
-Essa estratégia pressupõe entradas ordenadas cronologicamente, como os datasets utilizados. Caso encontre um timestamp anterior ao do grupo corrente, o programa sinaliza erro para evitar resultados incompletos.
-5.2. Indexação espacial tridimensional
-Cada posição geográfica é convertida em coordenadas cartesianas tridimensionais (ECEF), usando o raio terrestre de 6.371.000 metros. As coordenadas são distribuídas em células de 20 metros, implementadas com Map.
-
-Ao analisar uma posição, o detector pesquisa a própria célula e as 26 células adjacentes, evitando comparações entre monitorados geograficamente distantes. A indexação seleciona candidatos; a distância definitiva entre cada par continua sendo verificada por Haversine.
-
-Esse filtro é importante porque o crescimento dos datasets torna custosa a comparação de todos os indivíduos com todos os demais. Em situações de grande concentração numa mesma região, o custo ainda pode se aproximar do caso quadrático: não se afirma complexidade linear garantida.
-5.3. Classificação e deduplicação
-Para candidatos com distância inferior a 20 metros e timestamps iguais, o algoritmo aplica as regras de medida protetiva, facção e encontro genérico. Pares são identificados por IDs ordenados e timestamp, impedindo duplicação quando aparecem em ordem inversa ou há registros repetidos.
-5.4. Escrita dos resultados
-Os encontros de cada grupo são agregados em um array e, ao concluir a leitura do dataset, serializados no arquivo JSON solicitado. A leitura é progressiva, mas o array final de encontros permanece em memória até a escrita. Essa decisão simplifica a implementação e funcionou nos sete datasets do desafio; uma escrita incremental seria uma evolução possível para cenários com volumes muito maiores de encontros.
-
-6. Formato do JSON de saída
-Para cada dataset, a aplicação gera um array de objetos com o contrato exigido:
+```json
 [
   {
-    "tipo": "generico",
-    "monitoradosEncontro": [4, 6],
-    "timestamp": "2024-01-01 00:05:15",
+    "tipo": "faccao",
+    "monitoradosEncontro": [40, 44],
+    "timestamp": "2024-01-01 00:01:50",
     "posicoes": {
-      "4": { "lat": -31.93195, "lon": -40.61438 },
-      "6": { "lat": -31.93187, "lon": -40.61435 }
+      "40": { "lat": -10.07996, "lon": -37.08384 },
+      "44": { "lat": -10.07987, "lon": -37.08389 }
     },
-    "distanciaMetros": 9.33522817789823
+    "distanciaMetros": 11.406788673336607
   }
 ]
-Os tipos aceitos são generico, faccao e protetiva. Os resultados são gravados em backend/outputs/outputN.json, em que N corresponde ao dataset.
+```
 
-7. Como executar
-Pré-requisitos
-- Node.js com suporte a módulos ES e node:test (recomenda-se Node.js 22 ou superior).
-- npm.
-Instalação
-No terminal, a partir da raiz do repositório:
-cd backend
+As posições são indexadas pelas chaves que correspondem aos IDs. `distanciaMetros` contém o valor de Haversine não arredondado usado pelo detector.
+
+## Algoritmo e desempenho
+
+A distância é calculada pela fórmula de Haversine:
+
+```text
+a = sen²(Δlatitude / 2)
+  + cos(latitude₁) × cos(latitude₂) × sen²(Δlongitude / 2)
+distância = 2 × 6.371.000 × asin(√a)
+```
+
+Os ângulos são convertidos para radianos. O encontro só é aceito se a distância resultante for menor que 20 metros; distância igual a 20 metros é rejeitada. Antes do cálculo de Haversine, cada posição é projetada em coordenadas cartesianas tridimensionais sobre uma esfera de raio 6.371.000 m. O detector distribui essas coordenadas em células cúbicas de 20 m e consulta a célula da posição e as 26 células vizinhas. A grade filtra candidatos; Haversine continua sendo a verificação final.
+
+Se um timestamp tiver `k` posições, a comparação ingênua de todos os pares pode exigir `O(k²)` cálculos de distância. A grade evita a maioria dessas comparações quando as pessoas estão geograficamente dispersas; o trabalho esperado depende do número de candidatos locais. Em concentrações densas, o pior caso continua sendo quadrático, e a criação de todos os encontros próximos também pode exigir `O(k²)` espaço de saída.
+
+A leitura do arquivo é progressiva: o programa mantém em memória o grupo do timestamp corrente, o índice espacial desse grupo e os encontros encontrados. O array final de encontros permanece em memória até a gravação do JSON. A deduplicação usa timestamp e IDs ordenados, portanto a ordem de chegada dos dois envolvidos não cria uma segunda ocorrência.
+
+### Premissa temporal
+
+O processamento pressupõe que as linhas estão ordenadas cronologicamente e que posições do mesmo timestamp aparecem em sequência. O enunciado exige igualdade de timestamp, mas não determina a ordenação dos registros. Os sete datasets locais foram examinados: todos estão em ordem cronológica, sem regressões, com grupos de 10, 20, 40, 60, 80, 100 e 120 registros por timestamp, respectivamente. Para preservar o streaming e o uso de memória, o programa rejeita uma regressão temporal em vez de armazenar todo o dataset para reagrupar. Uma entrada não ordenada precisa ser ordenada antes do processamento.
+
+## Pré-requisitos e instalação
+
+É necessário Node.js 22 ou superior e npm. Os comandos npm devem ser executados a partir de `backend/`.
+
+```bash
+git clone https://github.com/SantV7/spacecom-encounter-detection.git
+cd spacecom-encounter-detection/backend
 npm ci
-Processar um dataset
-O comando recebe o caminho do input e o caminho do JSON de saída:
+```
+
+## Executar a aplicação
+
+Para processar o primeiro dataset incluído no repositório:
+
+```bash
 npm run dev -- datasets/examples/dataset1.txt outputs/output1.json
-Para outro dataset, altere o número nos dois caminhos. O script de desenvolvimento usa tsx watch; após concluir uma execução, é possível encerrar o processo com Ctrl + C.
-Verificar tipos e compilar
-npx tsc --noEmit
+```
+
+O primeiro argumento é o caminho do arquivo `.txt` de entrada; o segundo é o caminho do arquivo `.json` de saída. O separador `--` encaminha esses argumentos do npm para a aplicação. Os dois caminhos são relativos à pasta `backend`. O comando cria a pasta de destino quando necessário.
+
+O script `dev` executa `tsx watch src/app.ts`. Ele pode continuar ativo depois de processar o arquivo para observar alterações; encerre-o com `Ctrl+C`. Para executar o JavaScript compilado, sem modo de observação:
+
+```bash
 npm run build
-Executar os testes automatizados
-npx tsc -p tsconfig.test.json --noEmit
-node --import tsx --test tests/*.test.ts
-Validar com os gabaritos oficiais
+npm start -- datasets/examples/dataset1.txt outputs/output1.json
+```
+
+### Scripts disponíveis
+
+| Comando (na pasta `backend/`) | Finalidade |
+| --- | --- |
+| `npm ci` | Instala as dependências registradas no `package-lock.json`. |
+| `npm run dev -- <entrada.txt> <saida.json>` | Executa a CLI em TypeScript com `tsx watch`. |
+| `npm run build` | Compila `src/` para `dist/`. |
+| `npm start -- <entrada.txt> <saida.json>` | Executa a CLI compilada em `dist/app.js`. |
+| `npm run typecheck` | Verifica os tipos do código de produção sem emitir arquivos. |
+| `npm run test:typecheck` | Verifica os tipos do código e dos testes sem emitir arquivos. |
+| `npm test` | Executa os testes com o test runner nativo `node:test`. |
+| `npm run validate` | Compara os outputs 1 e 2 com os gabaritos oficiais locais. |
+
+## Datasets e reprodução dos outputs
+
+Os datasets 1 e 2 estão versionados em `backend/datasets/examples/`. Os datasets 3 a 7 são grandes e ficam fora do Git; podem ser baixados dos endereços oficiais:
+
+| Dataset | Input oficial | Output entregue |
+| ---: | --- | --- |
+| 1 | [dataset1.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset1.txt) | [output1.json](backend/outputs/output1.json) |
+| 2 | [dataset2.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset2.txt) | [output2.json](backend/outputs/output2.json) |
+| 3 | [dataset3.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset3.txt) | [output3.json](backend/outputs/output3.json) |
+| 4 | [dataset4.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset4.txt) | [output4.json](backend/outputs/output4.json) |
+| 5 | [dataset5.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset5.txt) | [output5.json](backend/outputs/output5.json) |
+| 6 | [dataset6.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset6.txt) | [output6.json](backend/outputs/output6.json) |
+| 7 | [dataset7.txt](https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset7.txt) | [output7.json](backend/outputs/output7.json) |
+
+Para baixar os datasets 3 a 7, execute um dos blocos a seguir a partir de `backend/`.
+
+PowerShell (Windows):
+
+```powershell
+New-Item -ItemType Directory -Force -Path "datasets/examples" | Out-Null
+
+foreach ($n in 3..7) {
+    $url = "https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset${n}.txt"
+    $destination = "datasets/examples/dataset${n}.txt"
+    curl.exe -fL --retry 3 -o $destination $url
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao baixar dataset ${n}"
+    }
+}
+```
+
+Bash (Linux/macOS):
+
+```bash
+mkdir -p datasets/examples
+for n in 3 4 5 6 7; do
+  curl -fL --retry 3 \
+    "https://bucket-projeto-trainee.s3.sa-east-1.amazonaws.com/dataset${n}.txt" \
+    -o "datasets/examples/dataset${n}.txt" || exit 1
+done
+```
+
+Para gerar novamente os sete resultados sem sobrescrever os outputs entregues, use o diretório `outputs/reproduced/`. Execute os comandos na pasta `backend/` depois de baixar todos os inputs.
+
+PowerShell (Windows):
+
+```powershell
+npm run build
+foreach ($n in 1..7) {
+    npm start -- "datasets/examples/dataset${n}.txt" "outputs/reproduced/output${n}.json"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Falha ao processar dataset ${n}"
+    }
+}
+```
+
+Bash (Linux/macOS):
+
+```bash
+npm run build
+for n in 1 2 3 4 5 6 7; do
+  npm start -- "datasets/examples/dataset${n}.txt" \
+    "outputs/reproduced/output${n}.json" || exit 1
+done
+```
+
+Para processar apenas um dataset, substitua `n` nos caminhos pelos números correspondentes. A CLI cria as pastas de saída. Use nomes alternativos se não quiser sobrescrever um arquivo existente.
+
+## Testes, tipagem e validação
+
+Execute os comandos a partir de `backend/`:
+
+```bash
+npm run typecheck
+npm run test:typecheck
+npm test
+npm run build
 npm run validate
-Esse comando compara outputs/output1.json e outputs/output2.json com os respectivos arquivos em datasets/expected/. A execução deve ser feita a partir da pasta backend.
+```
 
-8. Testes e validação
-Foram implementados 15 testes unitários, executados com node:test e node:assert/strict, sem dependência de Jest:
-- 5 testes de geolocalização: distância zero, simetria do cálculo, distância positiva e identificação de pontos abaixo/acima de 20 metros.
-- 10 testes de detecção: encontro genérico, facção igual, facções diferentes, medida protetiva vinculada, medida protetiva sem vínculo, timestamps distintos, distância fora do limite, deduplicação, grupos sem posições suficientes e preservação dos dados no output.
-Na última execução local informada, o resultado foi de 15 testes aprovados e 0 falhas. A verificação de tipos dos testes também foi executada pelo compilador TypeScript.
-Comparação com os gabaritos oficiais
-Dataset	Esperados	Gerados	Corretos	Ausentes	Incorretos	Resultado
-1	4	4	4	0	0	PASSOU
-2	6	6	6	0	0	PASSOU
+`npm run validate` lê os outputs existentes e os gabaritos `datasets/expected/first_answers.json` e `datasets/expected/second_answers.json`. Ele compara tipo, timestamp, IDs, posições e distância com tolerância de `1e-6` metro. Não gera nem sobrescreve outputs.
 
+A suíte contém 27 testes com `node:test`, cobrindo cálculo geográfico, fronteira de 20 metros, vizinhança entre células, classificação, deduplicação, contrato do encontro e validação de registros pelo parser.
 
-A comparação realizada por validate.ts verifica IDs, timestamp, classificação, posições e distância calculada com tolerância numérica de 1e-6 metro. Os dois gabaritos disponíveis foram reproduzidos sem encontros ausentes ou incorretos.
-Outputs gerados
-Dataset	Encontros identificados	Verificação
-1	4	Gabarito oficial + estrutura
-2	6	Gabarito oficial + estrutura
-3	10	Estrutura JSON
-4	15	Estrutura JSON
-5	21	Estrutura JSON
-6	27	Estrutura JSON
-7	35	Estrutura JSON
-Total	118	7 outputs gerados
+## Resultados entregues
 
+| Dataset | Encontros no output | Verificação disponível |
+| ---: | ---: | --- |
+| 1 | 4 | Corresponde ao gabarito oficial local. |
+| 2 | 6 | Corresponde ao gabarito oficial local. |
+| 3 | 10 | Estrutura JSON; não há gabarito público disponível. |
+| 4 | 15 | Estrutura JSON; não há gabarito público disponível. |
+| 5 | 21 | Estrutura JSON; não há gabarito público disponível. |
+| 6 | 27 | Estrutura JSON; não há gabarito público disponível. |
+| 7 | 35 | Estrutura JSON; não há gabarito público disponível. |
+| **Total** | **118** | Sete outputs entregues. |
 
-Os outputs 3 a 7 foram gerados e submetidos a verificações estruturais. Não existem gabaritos públicos para esses cinco datasets, portanto não é possível declarar sua precisão final confirmada. Todos foram produzidos pelo mesmo algoritmo validado nos dois exemplos oficiais.
-9. Limitações e possíveis evoluções
-- A leitura por grupos pressupõe registros ordenados por timestamp.
-- A indexação espacial reduz comparações em cenários dispersos, mas seu pior caso depende da densidade de posições próximas.
-- A aplicação mantém os encontros detectados em memória até serializar o JSON de cada dataset.
-- Os testes unitários cobrem regras centrais e cenários representativos, sem pretensão de esgotar todas as combinações de dados.
-- Os datasets 3 a 7 não possuem gabaritos oficiais disponíveis para comparação.
-O escopo foi mantido deliberadamente enxuto: não há framework web, banco de dados ou infraestrutura de containers porque não são necessários para resolver o problema proposto.
+Os outputs 1 e 2 têm, respectivamente, quatro e seis encontros, sem ausentes ou incorretos na comparação com os gabaritos disponíveis. Os datasets 3 a 7 não têm gabaritos públicos; a contagem e a validade estrutural dos JSONs não comprovam a precisão integral desses resultados.
 
-10. Datasets e referências oficiais
-Os arquivos de entrada podem ser obtidos diretamente do armazenamento disponibilizado para o desafio:
-- Dataset 1
-- Dataset 2
-- Dataset 3
-- Dataset 4
-- Dataset 5
-- Dataset 6
-- Dataset 7
-Gabaritos de referência:
-- Respostas do dataset 1
-- Respostas do dataset 2
+## Limitações e premissas
 
-11. Autor e contexto
-Desenvolvido por Vinícius Santos Oliveira para o desafio técnico do Programa Trainee Tech Spacecom 2027.
-- GitHub: SantV7
-- Repositório: spacecom-encounter-detection
-Os dados utilizados no desafio são fictícios.
+- A entrada precisa estar ordenada cronologicamente, com registros de um mesmo timestamp contíguos. O app acusa timestamps regressivos; ele não reordena nem mantém o arquivo inteiro em memória.
+- A grade espacial reduz comparações em dados dispersos, mas pode se aproximar do caso quadrático em grupos densos.
+- O array de encontros permanece em memória até a serialização do JSON; entradas com quantidade excepcional de encontros podem elevar o consumo de memória.
+- Os datasets 3 a 7 não têm gabaritos públicos para comparação independente.
+- Os resultados de referência dos datasets 1 e 2 podem ser revalidados com `npm run validate`.
+
+O projeto não inclui servidor HTTP, banco de dados ou containers: esses componentes não são necessários para os requisitos da CLI.
+
+## Referências
+
+- [Enunciado original do desafio](verifyContextChallengeTrainee.md)
+- [Gabarito do dataset 1](backend/datasets/expected/first_answers.json)
+- [Gabarito do dataset 2](backend/datasets/expected/second_answers.json)
+- [Repositório do projeto no GitHub](https://github.com/SantV7/spacecom-encounter-detection)

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 
 import { detectEncounters } from "../src/features/encounters/detect.js";
+import { haversineDistance } from "../src/geolocation.js";
 import type { Position } from "../src/types/position.js";
 
 const TIMESTAMP = "2026-11-03 12:00:00";
@@ -163,5 +164,36 @@ describe("Detecção e classificação de encontros", () => {
       lat: -15.7801,
       lon: -47.9292,
     });
+  });
+});
+
+describe("Limites geométricos do detector", () => {
+  it("detecta um encontro abaixo de 20 metros atravessando células", () => {
+    const positions = [
+      createPosition(1, { lat: 0, lon: -0.00005 }),
+      createPosition(2, { lat: 0, lon: 0.00005 }),
+    ];
+
+    const encounters = detectEncounters(positions);
+
+    assert.equal(encounters.length, 1);
+    const encounter = encounters[0];
+    assert.ok(encounter);
+    assert.ok(encounter.distanciaMetros < 20);
+  });
+
+  it("rejeita o caso em que a distância calculada é exatamente 20 metros", () => {
+    const longitudeAtTwentyMeters = (20 / 6_371_000) * (180 / Math.PI);
+    const origin = { lat: 0, lon: 0 };
+    const destination = { lat: 0, lon: longitudeAtTwentyMeters };
+
+    assert.equal(haversineDistance(origin, destination), 20);
+    assert.deepEqual(
+      detectEncounters([
+        createPosition(1, origin),
+        createPosition(2, destination),
+      ]),
+      []
+    );
   });
 });
