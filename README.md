@@ -27,7 +27,6 @@ A aplicação não registra encontros entre duas vítimas nem classifica como vi
 ```text
 spacecom-encounter-detection/
 ├── README.md
-├── verifyContextChallengeTrainee.md
 └── backend/
     ├── datasets/
     │   ├── examples/
@@ -38,7 +37,7 @@ spacecom-encounter-detection/
     │       ├── first_answers.json
     │       └── second_answers.json
     ├── outputs/
-    │   ├── output1.json ... output7.json
+    │   └── output1.json ... output7.json
     ├── src/
     │   ├── features/encounters/detect.ts
     │   ├── types/encounter.ts
@@ -86,7 +85,7 @@ idMonitorado;faccaoMonitorado;timestamp;latitude;longitude;medidaProtetiva;idsRe
 
 IDs e coordenadas são numéricos; latitude deve estar entre -90 e 90 e longitude entre -180 e 180. Facção pode estar vazia. `medidaProtetiva` aceita `true` ou `false`; o último campo pode estar vazio ou conter IDs separados por vírgula. Timestamps devem seguir `YYYY-MM-DD HH:MM:SS` e representar uma data e hora válidas.
 
-Cada output é um array JSON. Um item segue esta estrutura:
+Cada output é um array JSON. Um item segue esta estrutura ilustrativa:
 
 ```json
 [
@@ -123,7 +122,9 @@ A leitura do arquivo é progressiva: o programa mantém em memória o grupo do t
 
 ### Premissa temporal
 
-O processamento pressupõe que as linhas estão ordenadas cronologicamente e que posições do mesmo timestamp aparecem em sequência. O enunciado exige igualdade de timestamp, mas não determina a ordenação dos registros. Os sete datasets locais foram examinados: todos estão em ordem cronológica, sem regressões, com grupos de 10, 20, 40, 60, 80, 100 e 120 registros por timestamp, respectivamente. Para preservar o streaming e o uso de memória, o programa rejeita uma regressão temporal em vez de armazenar todo o dataset para reagrupar. Uma entrada não ordenada precisa ser ordenada antes do processamento.
+O processamento pressupõe que as linhas estão ordenadas cronologicamente e que posições do mesmo timestamp aparecem em sequência. O enunciado exige igualdade de timestamp, mas não determina a ordenação dos registros. Os sete datasets locais foram examinados: todos estão em ordem cronológica, sem regressões, com grupos de 10, 20, 40, 60, 80, 100 e 120 registros por timestamp, respectivamente.
+
+Para preservar o streaming e o uso de memória, o programa rejeita uma regressão temporal em vez de armazenar todo o dataset para reagrupar. Uma entrada não ordenada precisa ser ordenada antes do processamento.
 
 ## Pré-requisitos e instalação
 
@@ -137,10 +138,10 @@ npm ci
 
 ## Executar a aplicação
 
-Para processar o primeiro dataset incluído no repositório:
+Para processar o primeiro dataset incluído no repositório, sem sobrescrever o resultado entregue:
 
 ```bash
-npm run dev -- datasets/examples/dataset1.txt outputs/output1.json
+npm run dev -- datasets/examples/dataset1.txt outputs/reproduced/output1.json
 ```
 
 O primeiro argumento é o caminho do arquivo `.txt` de entrada; o segundo é o caminho do arquivo `.json` de saída. O separador `--` encaminha esses argumentos do npm para a aplicação. Os dois caminhos são relativos à pasta `backend`. O comando cria a pasta de destino quando necessário.
@@ -149,7 +150,7 @@ O script `dev` executa `tsx watch src/app.ts`. Ele pode continuar ativo depois d
 
 ```bash
 npm run build
-npm start -- datasets/examples/dataset1.txt outputs/output1.json
+npm start -- datasets/examples/dataset1.txt outputs/reproduced/output1.json
 ```
 
 ### Scripts disponíveis
@@ -276,7 +277,6 @@ O projeto não inclui servidor HTTP, banco de dados ou containers: esses compone
 
 ## Referências
 
-- [Enunciado original do desafio](verifyContextChallengeTrainee.md)
 - [Gabarito do dataset 1](backend/datasets/expected/first_answers.json)
 - [Gabarito do dataset 2](backend/datasets/expected/second_answers.json)
 - [Repositório do projeto no GitHub](https://github.com/SantV7/spacecom-encounter-detection)
